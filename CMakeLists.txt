@@ -33,6 +33,38 @@ option(AUTO_DETECT_DEVICES "Automatically detect available devices" ON)
 option(AUTO_DETECT_BACKENDS "Automatically detect available backends" OFF)
 option(BUILD_EXAMPLES "Build internal examples" ON)
 
+function(_collect_thead_hints out_var)
+    if(NOT DEFINED _THEAD_HINTS_MEMO)
+        set(_hints
+            /usr/local/PPU_SDK
+            /usr/local/PPU_SDK/CUDA_SDK
+        )
+
+        foreach(_env IN ITEMS PPU_SDK PPU_HOME PPU_PATH)
+            if(DEFINED ENV{${_env}} AND NOT "$ENV{${_env}}" STREQUAL "")
+                list(APPEND _hints
+                    "$ENV{${_env}}"
+                    "$ENV{${_env}}/CUDA_SDK"
+                )
+            endif()
+        endforeach()
+
+        foreach(_env IN ITEMS CUDA_SDK CUDA_HOME CUDA_PATH CUDA_TOOLKIT_ROOT)
+            if(DEFINED ENV{${_env}} AND NOT "$ENV{${_env}}" STREQUAL "")
+                list(APPEND _hints
+                    "$ENV{${_env}}"
+                    "$ENV{${_env}}/.."
+                )
+            endif()
+        endforeach()
+
+        list(REMOVE_DUPLICATES _hints)
+        set(_THEAD_HINTS_MEMO "${_hints}" PARENT_SCOPE)
+    endif()
+
+    set(${out_var} "${_THEAD_HINTS_MEMO}" PARENT_SCOPE)
+endfunction()
+
 # =========================================================
 # --- AUTO-DETECTION: DEVICES ---
 # =========================================================
@@ -218,20 +250,8 @@ if(AUTO_DETECT_DEVICES)
     if(WITH_THEAD)
         set(THEAD_FOUND TRUE)
     else()
-        set(_THEAD_SDK_HINTS)
-        foreach(_thead_env PPU_SDK PPU_HOME PPU_PATH)
-            if(DEFINED ENV{${_thead_env}} AND NOT "$ENV{${_thead_env}}" STREQUAL "")
-                list(APPEND _THEAD_SDK_HINTS "$ENV{${_thead_env}}")
-            endif()
-        endforeach()
-        foreach(_thead_cuda_env CUDA_SDK CUDA_HOME CUDA_PATH CUDA_TOOLKIT_ROOT)
-            if(DEFINED ENV{${_thead_cuda_env}} AND NOT "$ENV{${_thead_cuda_env}}" STREQUAL "")
-                list(APPEND _THEAD_SDK_HINTS "$ENV{${_thead_cuda_env}}" "$ENV{${_thead_cuda_env}}/..")
-            endif()
-        endforeach()
-        list(APPEND _THEAD_SDK_HINTS /usr/local/PPU_SDK /usr/local/PPU_SDK/CUDA_SDK)
-
-        foreach(_thead_hint ${_THEAD_SDK_HINTS})
+        _collect_thead_hints(_THEAD_HINTS)
+        foreach(_thead_hint IN LISTS _THEAD_HINTS)
             if(EXISTS "${_thead_hint}/CUDA_SDK" OR EXISTS "${_thead_hint}/bin/ppu-smi" OR EXISTS "${_thead_hint}/ppu-smi/bin/ppu-smi")
                 set(THEAD_FOUND TRUE)
             endif()
@@ -315,19 +335,14 @@ if(AUTO_DETECT_BACKENDS)
         set(_NCCL_HINTS)
         set(_NCCL_HEADER_NAMES nccl.h)
         set(_NCCL_LIBRARY_NAMES nccl)
+        set(_NCCL_INCLUDE_SUFFIXES include)
+        set(_NCCL_LIBRARY_SUFFIXES lib lib64)
 
         if(WITH_THEAD)
-            foreach(_thead_cuda_env CUDA_SDK CUDA_HOME CUDA_PATH CUDA_TOOLKIT_ROOT)
-                if(DEFINED ENV{${_thead_cuda_env}} AND NOT "$ENV{${_thead_cuda_env}}" STREQUAL "")
-                    list(APPEND _NCCL_HINTS "$ENV{${_thead_cuda_env}}")
-                endif()
-            endforeach()
-            foreach(_thead_env PPU_SDK PPU_HOME PPU_PATH)
-                if(DEFINED ENV{${_thead_env}} AND NOT "$ENV{${_thead_env}}" STREQUAL "")
-                    list(APPEND _NCCL_HINTS "$ENV{${_thead_env}}/CUDA_SDK" "$ENV{${_thead_env}}")
-                endif()
-            endforeach()
-            list(APPEND _NCCL_HINTS /usr/local/PPU_SDK/CUDA_SDK /usr/local/PPU_SDK)
+            _collect_thead_hints(_THEAD_HINTS)
+            set(_NCCL_HINTS ${_THEAD_HINTS})
+            list(APPEND _NCCL_INCLUDE_SUFFIXES targets/x86_64-linux/include)
+            list(APPEND _NCCL_LIBRARY_SUFFIXES targets/x86_64-linux/lib)
             list(REMOVE_DUPLICATES _NCCL_HINTS)
             message(STATUS "T-Head detected. Searching for NCCL in ${_NCCL_HINTS}")
         elseif(WITH_ILUVATAR)
@@ -348,16 +363,17 @@ if(AUTO_DETECT_BACKENDS)
             list(APPEND _NCCL_HINTS /opt/dtk /opt/dtk/rccl)
             set(_NCCL_HEADER_NAMES rccl/rccl.h rccl.h)
             set(_NCCL_LIBRARY_NAMES rccl)
+            list(APPEND _NCCL_LIBRARY_SUFFIXES rccl/lib)
             message(STATUS "Hygon detected. Searching for NCCL-compatible RCCL in ${_NCCL_HINTS}")
         endif()
 
         find_path(AUTO_NCCL_INC NAMES ${_NCCL_HEADER_NAMES}
             HINTS ${_NCCL_HINTS}
-            PATH_SUFFIXES include targets/x86_64-linux/include
+            PATH_SUFFIXES ${_NCCL_INCLUDE_SUFFIXES}
             QUIET)
         find_library(AUTO_NCCL_LIB NAMES ${_NCCL_LIBRARY_NAMES}
             HINTS ${_NCCL_HINTS}
-            PATH_SUFFIXES lib lib64 targets/x86_64-linux/lib rccl/lib
+            PATH_SUFFIXES ${_NCCL_LIBRARY_SUFFIXES}
             QUIET)
 
         if(AUTO_NCCL_INC AND AUTO_NCCL_LIB)
@@ -433,18 +449,8 @@ endif()
 # --- DEPENDENCY DISCOVERY ---
 # =========================================================
 if(WITH_THEAD)
-    set(_THEAD_CUDA_HINTS)
-    foreach(_thead_cuda_env CUDA_SDK CUDA_HOME CUDA_PATH CUDA_TOOLKIT_ROOT)
-        if(DEFINED ENV{${_thead_cuda_env}} AND NOT "$ENV{${_thead_cuda_env}}" STREQUAL "")
-            list(APPEND _THEAD_CUDA_HINTS "$ENV{${_thead_cuda_env}}")
-        endif()
-    endforeach()
-    foreach(_thead_env PPU_SDK PPU_HOME PPU_PATH)
-        if(DEFINED ENV{${_thead_env}} AND NOT "$ENV{${_thead_env}}" STREQUAL "")
-            list(APPEND _THEAD_CUDA_HINTS "$ENV{${_thead_env}}/CUDA_SDK" "$ENV{${_thead_env}}")
-        endif()
-    endforeach()
-    list(APPEND _THEAD_CUDA_HINTS /usr/local/PPU_SDK/CUDA_SDK /usr/local/PPU_SDK /usr/local/cuda)
+    _collect_thead_hints(_THEAD_CUDA_HINTS)
+    list(APPEND _THEAD_CUDA_HINTS /usr/local/cuda)
     list(REMOVE_DUPLICATES _THEAD_CUDA_HINTS)
 
     set(THEAD_CUDA_ROOT "")
@@ -625,34 +631,29 @@ if(WITH_NCCL)
     set(_NCCL_HEADER_NAMES nccl.h)
     set(_NCCL_LIBRARY_NAMES nccl)
     set(NCCL_COMPILE_DEFINITIONS)
+    set(_NCCL_INCLUDE_SUFFIXES include)
+    set(_NCCL_LIBRARY_SUFFIXES lib lib64)
 
     if(WITH_THEAD)
-        foreach(_thead_cuda_env CUDA_SDK CUDA_HOME CUDA_PATH CUDA_TOOLKIT_ROOT)
-            if(DEFINED ENV{${_thead_cuda_env}} AND NOT "$ENV{${_thead_cuda_env}}" STREQUAL "")
-                list(APPEND _NCCL_HINTS "$ENV{${_thead_cuda_env}}")
-            endif()
-        endforeach()
-        foreach(_thead_env PPU_SDK PPU_HOME PPU_PATH)
-            if(DEFINED ENV{${_thead_env}} AND NOT "$ENV{${_thead_env}}" STREQUAL "")
-                list(APPEND _NCCL_HINTS "$ENV{${_thead_env}}/CUDA_SDK" "$ENV{${_thead_env}}")
-            endif()
-        endforeach()
-        list(APPEND _NCCL_HINTS /usr/local/PPU_SDK/CUDA_SDK /usr/local/PPU_SDK)
+        set(_NCCL_HINTS ${_THEAD_CUDA_HINTS})
+        list(APPEND _NCCL_INCLUDE_SUFFIXES targets/x86_64-linux/include)
+        list(APPEND _NCCL_LIBRARY_SUFFIXES targets/x86_64-linux/lib)
     elseif(WITH_HYGON)
         list(APPEND _NCCL_HINTS "${HYGON_DTK_ROOT}" "${HYGON_DTK_ROOT}/rccl")
         set(_NCCL_HEADER_NAMES rccl/rccl.h rccl.h)
         set(_NCCL_LIBRARY_NAMES rccl)
         set(NCCL_COMPILE_DEFINITIONS INFINI_CCL_USE_RCCL)
+        list(APPEND _NCCL_LIBRARY_SUFFIXES rccl/lib)
     endif()
 
     list(REMOVE_DUPLICATES _NCCL_HINTS)
     find_library(NCCL_LIB NAMES ${_NCCL_LIBRARY_NAMES}
         HINTS ${_NCCL_HINTS}
-        PATH_SUFFIXES lib lib64 targets/x86_64-linux/lib rccl/lib
+        PATH_SUFFIXES ${_NCCL_LIBRARY_SUFFIXES}
         REQUIRED)
     find_path(NCCL_INC NAMES ${_NCCL_HEADER_NAMES}
         HINTS ${_NCCL_HINTS}
-        PATH_SUFFIXES include targets/x86_64-linux/include
+        PATH_SUFFIXES ${_NCCL_INCLUDE_SUFFIXES}
         REQUIRED)
 
     include_directories(${NCCL_INC})
