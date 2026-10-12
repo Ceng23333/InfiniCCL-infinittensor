@@ -12,8 +12,44 @@ namespace infini::ccl {
 template <BackendType backend_type, Device::Type device_type>
 struct AllReduceImpl;
 
+struct AllReduceCaptureQuery {
+  void *comm_handle;
+  int *supported;
+};
+
+template <BackendType backend_type, Device::Type device_type>
+struct AllReduceCaptureImpl {
+  static ReturnStatus Query(Communicator *, int *supported) {
+    *supported = 0;
+    return ReturnStatus::kSuccess;
+  }
+};
+
 class AllReduce : public Operation<AllReduce> {
  public:
+  template <typename Key = AllReduce>
+  static ReturnStatus QueryCapture(const AllReduceCaptureQuery &query) {
+    if constexpr (ListSize<ActiveBackends<Key>>::value == 0 ||
+                  ListSize<ActiveDevices<Key>>::value == 0) {
+      return ReturnStatus::kNotSupported;
+    } else {
+      return Operation<Key>::Call(query);
+    }
+  }
+
+  template <BackendType backend_type, Device::Type device_type>
+  static ReturnStatus Execute(const AllReduceCaptureQuery &query) {
+    if (!query.supported) {
+      return ReturnStatus::kInvalidArgument;
+    }
+    *query.supported = 0;
+    if (!query.comm_handle) {
+      return ReturnStatus::kInvalidArgument;
+    }
+    return AllReduceCaptureImpl<backend_type, device_type>::Query(
+        static_cast<Communicator *>(query.comm_handle), query.supported);
+  }
+
   template <BackendType backend_type, Device::Type device_type,
             typename... Args>
   static ReturnStatus Execute(const void *send_buff, void *recv_buff,

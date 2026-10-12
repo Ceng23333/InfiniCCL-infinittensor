@@ -43,7 +43,7 @@ template <typename Key>
 using ActiveBackends = typename ActiveBackendsImpl<Key>::type;
 
 // Priority trait for backend selection.
-template <BackendType backend_type>
+template <auto backend_type>
 struct BackendPriority {
   static constexpr int value = 0;
 };

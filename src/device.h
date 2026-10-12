@@ -121,7 +121,7 @@ using ActiveDevices = typename ActiveDevicesImpl<T>::type;
 /**
  * @brief Priority trait for device selection.
  */
-template <Device::Type device_type>
+template <auto device_type>
 struct DevicePriority {
   static constexpr int value = 0;
 };

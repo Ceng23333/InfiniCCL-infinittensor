@@ -300,6 +300,9 @@ file(WRITE "${PUBLIC_HEADERS_DIR}/infiniccl.h" "${INFINICCL_H_CONTENT}")
 
 # --- Generate the bridge files ---
 set(GENERATED_BRIDGE "${CMAKE_CURRENT_BINARY_DIR}/comm_bridge.cc")
+if(WITH_NVIDIA)
+    set_source_files_properties("${GENERATED_BRIDGE}" PROPERTIES LANGUAGE CUDA)
+endif()
 set(GENERATED_MANIFEST "${CMAKE_CURRENT_BINARY_DIR}/backend_manifest.h")
 set(DEV_STR "${DEVICE_LIST}")
 set(BACK_STR "${BACKEND_LIST}")

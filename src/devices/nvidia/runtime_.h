@@ -22,7 +22,7 @@ struct Runtime<Device::Type::kNvidia>
   static constexpr Device::Type kDeviceType = Device::Type::kNvidia;
 
   static constexpr auto Check =
-      [](auto status, ReturnStatus err_code = ReturnStatus::kSystemError) {
+      [](cudaError_t status, ReturnStatus err_code = ReturnStatus::kSystemError) {
         if (status != cudaSuccess) {
           LOG(cudaGetErrorString(static_cast<cudaError_t>(status)));
           return err_code;

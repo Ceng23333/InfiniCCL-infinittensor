@@ -50,6 +50,10 @@ infinicclResult_t infinicclAllReduce(const void *sendbuff, void *recvbuff,
                                      infinicclRedOp_t op, infinicclComm_t comm,
                                      void *stream);
 
+// Rank-local capture eligibility for the selected AllReduce provider.
+infinicclResult_t infinicclAllReduceIsCaptureSafe(infinicclComm_t comm,
+                                                int *supported);
+
 infinicclResult_t infinicclBroadcast(const void *sendbuff, void *recvbuff,
                                      size_t count, infinicclDataType_t datatype,
                                      int root, infinicclComm_t comm,

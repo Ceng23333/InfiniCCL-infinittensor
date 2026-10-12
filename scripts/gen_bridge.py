@@ -180,6 +180,7 @@ def generate(project_root, output_dir, devices, backends):
         '#include "comm_impl.h"',
         '#include "data_type_impl.h"',
         '#include "operation.h"',
+        '#include "base/all_reduce.h"',
         "\nnamespace infini::ccl {",
         '\nextern "C" {',
     ]
@@ -190,7 +191,22 @@ def generate(project_root, output_dir, devices, backends):
         ).lower()
 
         # Check if this operation is supported by the compiled backend configuration
-        if op_filename in implemented_ops or s["key"].lower() in implemented_ops:
+        if s["name"] == "infinicclAllReduceIsCaptureSafe":
+            body = """    if (!supported) {
+        return static_cast<infinicclResult_t>(ReturnStatus::kInvalidArgument);
+    }
+    *supported = 0;
+    if (!comm) {
+        return static_cast<infinicclResult_t>(ReturnStatus::kInvalidArgument);
+    }
+    try {
+        return static_cast<infinicclResult_t>(AllReduce::QueryCapture(
+            AllReduceCaptureQuery{comm, supported}));
+    } catch (...) {
+        *supported = 0;
+        return static_cast<infinicclResult_t>(ReturnStatus::kUnhandledError);
+    }"""
+        elif op_filename in implemented_ops or s["key"].lower() in implemented_ops:
             params_list = s["params"].split(",")
             args_with_casts = []
             for p in params_list:
