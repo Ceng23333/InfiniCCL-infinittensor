@@ -22,7 +22,7 @@ class Device {
     kKunlun = 7,
     kHygon = 8,
     kQy = 9,
-    kTHead = 10,
+    kThead = 10,
     kCount
   };
 
@@ -68,7 +68,7 @@ class Device {
           {Type::kKunlun, "kunlun"},
           {Type::kHygon, "hygon"},
           {Type::kQy, "qy"},
-          {Type::kTHead, "t-head"},
+          {Type::kThead, "thead"},
       }}};
 
   static constexpr ConstexprMap<std::string_view, Device::Type,
@@ -84,7 +84,7 @@ class Device {
           {"kunlun", Type::kKunlun},
           {"hygon", Type::kHygon},
           {"qy", Type::kQy},
-          {"t-head", Type::kTHead},
+          {"thead", Type::kThead},
       }}};
 
   int index_{0};
@@ -100,7 +100,7 @@ using AllDeviceTypes =
     List<Device::Type::kCpu, Device::Type::kNvidia, Device::Type::kCambricon,
          Device::Type::kAscend, Device::Type::kMetax, Device::Type::kMoore,
          Device::Type::kIluvatar, Device::Type::kKunlun, Device::Type::kHygon,
-         Device::Type::kTHead, Device::Type::kQy>;
+         Device::Type::kThead, Device::Type::kQy>;
 
 // Deferred computation of active devices. The `Filter` and `FilterList`
 // evaluation are nested inside a class template so that `DeviceEnabled`
@@ -165,7 +165,7 @@ struct DevicePriority<Device::Type::kHygon> {
 };
 
 template <>
-struct DevicePriority<Device::Type::kTHead> {
+struct DevicePriority<Device::Type::kThead> {
   static constexpr int value = 5;
 };
 

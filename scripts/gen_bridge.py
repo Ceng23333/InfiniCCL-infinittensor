@@ -47,11 +47,6 @@ CCL_PROVIDER_BACKENDS = {
     "cncl": "backends/ccl/cncl",
 }
 
-# Map public device names to their C++ enum names.
-DEVICE_ENUM_MAP = {
-    "t-head": "THead",
-}
-
 # =================================================================
 # LOGIC
 # =================================================================
@@ -136,7 +131,7 @@ def generate(project_root, output_dir, devices, backends):
                     break
 
         if device_included:
-            found_devices.append(f"Device::Type::k{DEVICE_ENUM_MAP.get(dev, dev.capitalize())}")
+            found_devices.append(f"Device::Type::k{dev.capitalize()}")
 
     # Process Active Backends
     for bb in backends:

@@ -59,6 +59,7 @@ function(_collect_thead_hints out_var)
         endforeach()
 
         list(REMOVE_DUPLICATES _hints)
+        set(_THEAD_HINTS_MEMO "${_hints}")
         set(_THEAD_HINTS_MEMO "${_hints}" PARENT_SCOPE)
     endif()
 

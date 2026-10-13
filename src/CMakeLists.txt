@@ -70,15 +70,15 @@ endif()
 
 # T-Head
 if(WITH_THEAD)
-    list(APPEND DEVICE_LIST "t-head")
+    list(APPEND DEVICE_LIST "thead")
 
     set(THEAD_PATTERNS
         "devices/cuda/*.cc"
         "devices/cuda/*.cpp"
         "devices/cuda/*.cu"
-        "devices/t-head/*.cc"
-        "devices/t-head/*.cpp"
-        "devices/t-head/*.cu"
+        "devices/thead/*.cc"
+        "devices/thead/*.cpp"
+        "devices/thead/*.cu"
     )
     file(GLOB THEAD_SOURCES ${THEAD_PATTERNS})
 
